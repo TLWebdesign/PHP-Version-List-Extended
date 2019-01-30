@@ -1,0 +1,126 @@
+#!/usr/local/bin/php
+<?php
+
+require_once(realpath(pathinfo($_SERVER['SCRIPT_NAME'], PATHINFO_DIRNAME) . '/../httpsocket.php'));
+
+$supportedVersionsDataFile = pathinfo($_SERVER['SCRIPT_NAME'], PATHINFO_DIRNAME) . '/../supportedVersions';
+
+// refresh the supportedVersions if the file not exists or the data is older than 24 hours
+if (!file_exists($supportedVersionsDataFile) || (time() - filemtime($supportedVersionsDataFile) > 24 * 3600)) {
+    require_once(realpath(pathinfo($_SERVER['SCRIPT_NAME'], PATHINFO_DIRNAME) . '/supportedVersions.php'));
+
+    $data = fopen($supportedVersionsDataFile, "w+");
+    fwrite($data, serialize(getSupportedVersions()));
+    fclose($data);
+}
+
+$supportedVersions = unserialize(file_get_contents($supportedVersionsDataFile));
+
+function colorize($version)
+{
+    global $supportedVersions;
+    $colorized = "";
+
+    $allBranches = [];
+    foreach ($supportedVersions as $supportedVersion) {
+        $allBranches[] = $supportedVersion['branch'];
+
+        if (preg_match('/^' . $supportedVersion['branch'] . '/', $version)) {
+            $color = ($supportedVersion['status'] === 'security') ? '#f93' : 'black';
+            $color = ($supportedVersion['status'] === 'stable') ? '#9c9' : $color;
+
+            $colorized = '<span style="font-weight: bold; color: ' . $color . '">' . $version . '</span>';
+            break;
+        }
+    }
+
+    if (empty($colorized)) {
+        if ((float)$version < (float)min($allBranches)) {
+            $colorized = '<span style="font-weight: bold; color: #f33">' . $version . '</span>';
+        } else {
+            $colorized = $version;
+        }
+    }
+
+    return $colorized;
+}
+
+// fetch PHP versions via an API call (no rights to access the custombuild options.conf file)
+$sock = new HTTPSocket;
+$sock->connect("ssl://" . $_SERVER['HTTP_HOST'], 2222);
+$sock->set_login($_SERVER['USER']);
+$sock->query('/CMD_API_SYSTEM_INFO');
+$systemInfo = $sock->fetch_parsed_body();
+
+$systemInfo['php'] = colorize($systemInfo['php']);
+$systemInfo['php2'] = colorize($systemInfo['php2']);
+
+/**
+ *
+ * value should be string that is passed!
+ */
+function translateValueToVersion($phpEnabled, $value)
+{
+    global $systemInfo;
+
+    if ($phpEnabled != 'ON')
+        return;
+
+    if ($value === '1')
+        return $systemInfo['php'];
+    else if ($value === '2')
+        return $systemInfo['php2'];
+    else if ($value === '0')
+        return 'Off';
+
+    return;
+}
+
+// read all the directadmin users data config files
+$phpConfigData = shell_exec("grep php /usr/local/directadmin/data/users/*/domains/*.conf");
+preg_match_all("/users\/(?P<user>.*)\/domains\/(?P<domain>.*)\.conf\:(?P<data>.*)\n/U", $phpConfigData, $matches);
+
+$list = [];
+$params = []; // array used to know later which phpx_select parameters there are
+foreach ($matches[0] as $k => $v) {
+    $user = $matches['user'][$k];
+    $domain = $matches['domain'][$k];
+    $data = $matches['data'][$k];
+
+    list($param, $val) = explode("=", $data);
+    $params[] = $param;
+    $list[$user][$domain][$param] = $val;
+}
+
+/*
+// make the values unique
+$params = array_unique($params);
+var_dump($params);
+*/
+
+?>
+
+<table class="list table-highlight" cellspacing="1" cellpadding="3">
+    <tr>
+        <td class="listtitle">User</td>
+        <td class="listtitle">Domain</td>
+        <td class="listtitle">PHP</td>
+        <td class="listtitle">First PHP</td>
+        <td class="listtitle">Second PHP</td>
+    </tr>
+
+    <?php
+    foreach ($list as $user => $domains) {
+        foreach ($domains as $domain => $settings) {
+            $class = (!isset($class) || $class == 'list2') ? 'list' : 'list2';
+            $phpEnabled = ($settings['php'] == 'ON') ? '<span style="color: green">ON</span>' : '<span style="color: red; font-weight: bold">OFF</span>';
+            $firstPhp = (isset($settings['php1_select'])) ? $settings['php1_select'] : '1';
+            $firstPhp = translateValueToVersion($settings['php'], $firstPhp);
+            $secondPhp = (isset($settings['php2_select'])) ? $settings['php2_select'] : null;
+            $secondPhp = translateValueToVersion($settings['php'], $secondPhp);
+
+            echo "<tr><td class=\"{$class}\">{$user}</td> <td class=\"{$class}\">{$domain}</td> <td class=\"{$class}\">{$phpEnabled}</td> <td class=\"{$class}\">{$firstPhp}</td> <td class=\"{$class}\">{$secondPhp}</td></tr>\n";
+        }
+    }
+    ?>
+</table>
