@@ -16,8 +16,7 @@ if (!file_exists($supportedVersionsDataFile) || (time() - filemtime($supportedVe
 
 $supportedVersions = unserialize(file_get_contents($supportedVersionsDataFile));
 
-function colorize($version)
-{
+function colorize($version) {
     global $supportedVersions;
     $colorized = "";
 
@@ -54,13 +53,14 @@ $systemInfo = $sock->fetch_parsed_body();
 
 $systemInfo['php'] = colorize($systemInfo['php']);
 $systemInfo['php2'] = colorize($systemInfo['php2']);
+$systemInfo['php3'] = colorize($systemInfo['php3']);
+$systemInfo['php4'] = colorize($systemInfo['php4']);
 
 /**
  *
  * value should be string that is passed!
  */
-function translateValueToVersion($phpEnabled, $value)
-{
+function translateValueToVersion($phpEnabled, $value) {
     global $systemInfo;
 
     if ($phpEnabled != 'ON')
@@ -70,6 +70,10 @@ function translateValueToVersion($phpEnabled, $value)
         return $systemInfo['php'];
     else if ($value === '2')
         return $systemInfo['php2'];
+    else if ($value === '3')
+        return $systemInfo['php3'];
+    else if ($value === '4')
+        return $systemInfo['php4'];
     else if ($value === '0')
         return 'Off';
 
@@ -107,6 +111,8 @@ var_dump($params);
         <td class="listtitle">PHP</td>
         <td class="listtitle">First PHP</td>
         <td class="listtitle">Second PHP</td>
+        <td class="listtitle">Third PHP</td>
+        <td class="listtitle">Fourth PHP</td>
     </tr>
 
     <?php
@@ -118,8 +124,14 @@ var_dump($params);
             $firstPhp = translateValueToVersion($settings['php'], $firstPhp);
             $secondPhp = (isset($settings['php2_select'])) ? $settings['php2_select'] : null;
             $secondPhp = translateValueToVersion($settings['php'], $secondPhp);
+            $thirdPhp = (isset($settings['php3_select'])) ? $settings['php3_select'] : null;
+            $thirdPhp = translateValueToVersion($settings['php'], $thirdPhp);
+            $fourthPhp = (isset($settings['php4_select'])) ? $settings['php4_select'] : null;
+            $fourthPhp = translateValueToVersion($settings['php'], $fourthPhp);
 
-            echo "<tr><td class=\"{$class}\">{$user}</td> <td class=\"{$class}\">{$domain}</td> <td class=\"{$class}\">{$phpEnabled}</td> <td class=\"{$class}\">{$firstPhp}</td> <td class=\"{$class}\">{$secondPhp}</td></tr>\n";
+            echo "<tr><td class=\"{$class}\">{$user}</td> <td class=\"{$class}\">{$domain}</td> <td class=\"{$class}\">{$phpEnabled}</td> "
+                . "<td class=\"{$class}\">{$firstPhp}</td> <td class=\"{$class}\">{$secondPhp}</td> <td class=\"{$class}\">{$thirdPhp}</td> "
+                . "<td class=\"{$class}\">{$fourthPhp}</td></tr>\n";
         }
     }
     ?>
