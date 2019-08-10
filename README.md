@@ -1,5 +1,6 @@
 # PHP version list plugin for DA
-This is a plugin written for DirectAdmin to list all the used PHP versions by the users.
+This is a plugin written for DirectAdmin to list all the used PHP versions by the users.\
+The interface is using Bootstrap.
 
 ## Requirements
 * DirectAdmin 1.57 and up
@@ -7,4 +8,3 @@ This is a plugin written for DirectAdmin to list all the used PHP versions by th
 * Custombuild 2.0 (for the different PHP versions installation)
 * DirectAdmin via https (httpsocket is working via ssl://...)
 * Max 4 different installed PHP versions, via Custombuild 2.0
-* Works best with the enhanced skin
