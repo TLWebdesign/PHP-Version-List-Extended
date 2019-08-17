@@ -1,5 +1,12 @@
 #!/usr/local/bin/php
+<link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
+
 <?php
+
+if (!function_exists('shell_exec')) {
+    echo '<div class="alert alert-danger"><strong>PHP Error:</strong> function shell_exec is not available or disabled.<br>Plugin can not be used until this function is available.</div>';
+    return;
+}
 
 require_once(realpath(pathinfo($_SERVER['SCRIPT_NAME'], PATHINFO_DIRNAME) . '/../httpsocket.php'));
 
@@ -103,7 +110,6 @@ var_dump($params);
 */
 
 ?>
-<link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
 
 <div class="table-responsive">
     <table class="table table-striped table-hover" cellspacing="1" cellpadding="3">
