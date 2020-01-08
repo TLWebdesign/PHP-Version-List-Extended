@@ -5,7 +5,7 @@ function getSupportedVersions()
     $supportedVersions = [];
 
     $dom = new DomDocument();
-    @$dom->loadHTMLFile('https://secure.php.net/supported-versions.php');
+    @$dom->loadHTMLFile('https://www.php.net/supported-versions.php');
     $xpath = new DomXPath($dom);
 
     // get the table with the Currently Supported Versions
