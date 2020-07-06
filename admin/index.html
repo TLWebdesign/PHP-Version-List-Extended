@@ -113,6 +113,21 @@ foreach ($matches[0] as $k => $v) {
     $list[$user][$domain][$param] = $val;
 }
 
+// not all config files have a variable php1_select, this is causing an incorrect count in the summary table
+// my feeling is that when you create an account and you do not touch the PHP version settings that the php1_select variable
+// will not be in the file and DirectAdmin is for them taking the first PHP version version.
+// also a second correction will be done if the php variable has the value OFF, unset all other variables from the data array.
+foreach($list as $user => $domains) {
+    foreach($domains as $domain => $data) {
+        if($data['php'] === 'ON' && !key_exists('php1_select', $data)) {
+            $data['php1_select'] = '1';
+            $list[$user][$domain] = $data;
+        } else if ($data['php'] === 'OFF') {
+            $list[$user][$domain] = ['php' => 'OFF'];
+        }
+    }
+}
+
 /*
 // make the values unique
 $params = array_unique($params);
