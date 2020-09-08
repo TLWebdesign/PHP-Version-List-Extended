@@ -23,7 +23,8 @@ if (!file_exists($supportedVersionsDataFile) || (time() - filemtime($supportedVe
 
 $supportedVersions = unserialize(file_get_contents($supportedVersionsDataFile));
 
-function colorize($version) {
+function colorize($version)
+{
     global $supportedVersions;
     $colorized = "";
 
@@ -51,7 +52,8 @@ function colorize($version) {
     return $colorized;
 }
 
-function phpVersionCompare($a, $b) {
+function phpVersionCompare($a, $b)
+{
     $a = strip_tags($a);
     $b = strip_tags($b);
 
@@ -68,7 +70,7 @@ $sock->set_login($_SERVER['USER']);
 $sock->query('/CMD_API_SYSTEM_INFO');
 $systemInfo = $sock->fetch_parsed_body();
 
-$systemInfo['php'] = colorize($systemInfo['php']);
+$systemInfo['php']  = colorize($systemInfo['php']);
 $systemInfo['php2'] = colorize($systemInfo['php2']);
 $systemInfo['php3'] = colorize($systemInfo['php3']);
 $systemInfo['php4'] = colorize($systemInfo['php4']);
@@ -77,22 +79,25 @@ $systemInfo['php4'] = colorize($systemInfo['php4']);
  *
  * value should be string that is passed!
  */
-function translateValueToVersion($phpEnabled, $value) {
+function translateValueToVersion($phpEnabled, $value)
+{
     global $systemInfo;
 
-    if ($phpEnabled != 'ON')
+    if ($phpEnabled != 'ON') {
         return;
+    }
 
-    if ($value === '1')
+    if ($value === '1') {
         return $systemInfo['php'];
-    else if ($value === '2')
+    } elseif ($value === '2') {
         return $systemInfo['php2'];
-    else if ($value === '3')
+    } elseif ($value === '3') {
         return $systemInfo['php3'];
-    else if ($value === '4')
+    } elseif ($value === '4') {
         return $systemInfo['php4'];
-    else if ($value === '0')
+    } elseif ($value === '0') {
         return 'Off';
+    }
 
     return;
 }
@@ -101,15 +106,15 @@ function translateValueToVersion($phpEnabled, $value) {
 $phpConfigData = shell_exec("grep php /usr/local/directadmin/data/users/*/domains/*.conf");
 preg_match_all("/users\/(?P<user>.*)\/domains\/(?P<domain>.*)\.conf\:(?P<data>.*)\n/U", $phpConfigData, $matches);
 
-$list = [];
+$list   = [];
 $params = []; // array used to know later which phpx_select parameters there are
 foreach ($matches[0] as $k => $v) {
-    $user = $matches['user'][$k];
+    $user   = $matches['user'][$k];
     $domain = $matches['domain'][$k];
-    $data = $matches['data'][$k];
+    $data   = $matches['data'][$k];
 
     list($param, $val) = explode("=", $data);
-    $params[] = $param;
+    $params[]                     = $param;
     $list[$user][$domain][$param] = $val;
 }
 
@@ -117,13 +122,15 @@ foreach ($matches[0] as $k => $v) {
 // my feeling is that when you create an account and you do not touch the PHP version settings that the php1_select variable
 // will not be in the file and DirectAdmin is for them taking the first PHP version version.
 // also a second correction will be done if the php variable has the value OFF, unset all other variables from the data array.
-foreach($list as $user => $domains) {
-    foreach($domains as $domain => $data) {
-        if($data['php'] === 'ON' && !key_exists('php1_select', $data)) {
-            $data['php1_select'] = '1';
+foreach ($list as $user => $domains) {
+    foreach ($domains as $domain => $data) {
+        if ($data['php'] === 'ON' && !key_exists('php1_select', $data)) {
+            $data['php1_select']  = '1';
             $list[$user][$domain] = $data;
-        } else if ($data['php'] === 'OFF') {
-            $list[$user][$domain] = ['php' => 'OFF'];
+        } else {
+            if ($data['php'] === 'OFF') {
+                $list[$user][$domain] = ['php' => 'OFF'];
+            }
         }
     }
 }
@@ -134,7 +141,7 @@ $params = array_unique($params);
 var_dump($params);
 */
 
-$keys = array_keys($systemInfo);
+$keys        = array_keys($systemInfo);
 $versionKeys = preg_grep('/^php([2-4]?)$/', $keys);
 
 // build an array with key the php install id (1, .., 4) and as value the php version
@@ -222,14 +229,14 @@ foreach ($list as $user => $domains) {
         foreach ($list as $user => $domains) {
             foreach ($domains as $domain => $settings) {
                 $phpEnabled = ($settings['php'] == 'ON') ? '<span style="color: green">ON</span>' : '<span style="color: red; font-weight: bold">OFF</span>';
-                $firstPhp = (isset($settings['php1_select'])) ? $settings['php1_select'] : '1';
-                $firstPhp = translateValueToVersion($settings['php'], $firstPhp);
-                $secondPhp = (isset($settings['php2_select'])) ? $settings['php2_select'] : null;
-                $secondPhp = translateValueToVersion($settings['php'], $secondPhp);
-                $thirdPhp = (isset($settings['php3_select'])) ? $settings['php3_select'] : null;
-                $thirdPhp = translateValueToVersion($settings['php'], $thirdPhp);
-                $fourthPhp = (isset($settings['php4_select'])) ? $settings['php4_select'] : null;
-                $fourthPhp = translateValueToVersion($settings['php'], $fourthPhp);
+                $firstPhp   = (isset($settings['php1_select'])) ? $settings['php1_select'] : '1';
+                $firstPhp   = translateValueToVersion($settings['php'], $firstPhp);
+                $secondPhp  = (isset($settings['php2_select'])) ? $settings['php2_select'] : null;
+                $secondPhp  = translateValueToVersion($settings['php'], $secondPhp);
+                $thirdPhp   = (isset($settings['php3_select'])) ? $settings['php3_select'] : null;
+                $thirdPhp   = translateValueToVersion($settings['php'], $thirdPhp);
+                $fourthPhp  = (isset($settings['php4_select'])) ? $settings['php4_select'] : null;
+                $fourthPhp  = translateValueToVersion($settings['php'], $fourthPhp);
 
                 echo "<tr><td>{$user}</td> <td>{$domain}</td> <td>{$phpEnabled}</td> "
                     . "<td>{$firstPhp}</td> <td>{$secondPhp}</td> <td>{$thirdPhp}</td> "
