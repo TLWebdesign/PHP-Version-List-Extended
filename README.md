@@ -6,7 +6,7 @@ It will show a summary of the used PHP version by # of domains.
 And a detailed overview of which PHP version(s) are used per domain.
 
 ## Requirements
-* DirectAdmin 1.61.0 and up
+* DirectAdmin 1.61.5 and up
 * PHP 5.6 and up
 * Custombuild 2.0 (for the different PHP versions installation)
 * DirectAdmin via https (httpsocket is working via ssl://...)
