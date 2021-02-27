@@ -28,6 +28,10 @@ function colorize($version)
     global $supportedVersions;
     $colorized = "";
 
+    if (empty($version)) {
+        return $colorized;
+    }
+
     $allBranches = [];
     foreach ($supportedVersions as $supportedVersion) {
         $allBranches[] = $supportedVersion['branch'];
@@ -194,6 +198,9 @@ foreach ($list as $user => $domains) {
         <?php
 
         foreach ($phpVersions as $key => $version) {
+            if (empty($version)) {
+                continue;
+            }
 
             echo "
             <tr>
