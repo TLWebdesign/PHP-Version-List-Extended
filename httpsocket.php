@@ -11,7 +11,22 @@
  *
  * @author Phi1 'l0rdphi1' Stier <l0rdphi1@liquenox.net>
  * @package HTTPSocket
- * @version 2.7.2
+ * @version 3.0.4
+
+ * 3.0.4
+ * store first proxy headers for return, in event of redirect
+
+ * 3.0.3
+ * curl Cookie for SESSION_ID+SESSION_KEY changed to setopt with
+
+ * 3.0.2
+ * added longer curl timeouts
+
+ * 3.0.1
+ * support for tcp:// conversion to http://
+
+ * 3.0.0
+ * swapped to use curl to address ssl certificate issues with php 5.6
 
  * 2.7.2
  * added x-use-https header check
@@ -25,8 +40,8 @@
  */
 class HTTPSocket {
 
-	var $version = '2.7.2';
-	
+	var $version = '3.0.4';
+
 	/* all vars are private except $error, $query_cache, and $doFollowLocationHeader */
 
 	var $method = 'GET';
@@ -55,6 +70,9 @@ class HTTPSocket {
 	var $ssl_setting_message = 'DirectAdmin appears to be using SSL. Change your script to connect to ssl://';
 
 	var $extra_headers = array();
+
+	var $proxy = false;
+	var $proxy_headers = array();
 
 	/**
 	 * Create server "connection".
@@ -110,6 +128,23 @@ class HTTPSocket {
 		}
 
 	}
+	/**
+	 * For pass through, this function writes the data in chunks.
+	 */
+	private function stream_chunk($ch, $data)
+	{
+		echo($data);
+		return strlen($data);
+	}
+	private function stream_header($ch, $data)
+	{
+		if (!preg_match('/^HTTP/i', $data))
+		{
+			header($data);
+		}
+		return strlen($data);
+	}
+
 
 	/**
 	 * Query the server
@@ -123,19 +158,23 @@ class HTTPSocket {
 		$this->error = $this->warn = array();
 		$this->result_status_code = NULL;
 
+		$is_ssl = FALSE;
+
 		// is our request a http:// ... ?
 		if (preg_match('!^http://!i',$request) || preg_match('!^https://!i',$request))
 		{
 			$location = parse_url($request);
 			if (preg_match('!^https://!i',$request))
-				$this->connect('ssl://'.$location['host'],$location['port']);
+			{
+				$this->connect('https://'.$location['host'],$location['port']);
+			}
 			else
-				$this->connect($location['host'],$location['port']);
+				$this->connect('http://'.$location['host'],$location['port']);
+
 			$this->set_login($location['user'],$location['pass']);
 
 			$request = $location['path'];
 			$content = $location['query'];
-
 
 			if ( strlen($request) < 1 )
 			{
@@ -144,8 +183,16 @@ class HTTPSocket {
 
 		}
 
+		if (preg_match('!^ssl://!i', $this->remote_host))
+			$this->remote_host = 'https://'.substr($this->remote_host, 6);
+
+		if (preg_match('!^tcp://!i', $this->remote_host))
+			$this->remote_host = 'http://'.substr($this->remote_host, 6);
+
+		if (preg_match('!^https://!i', $this->remote_host))
+			$is_ssl = TRUE;
+
 		$array_headers = array(
-			'User-Agent' => "HTTPSocket/$this->version",
 			'Host' => ( $this->remote_port == 80 ? $this->remote_host : "$this->remote_host:$this->remote_port" ),
 			'Accept' => '*/*',
 			'Connection' => 'Close' );
@@ -173,142 +220,88 @@ class HTTPSocket {
 
 		$OK = TRUE;
 
+		if ($this->method == 'GET' && isset($content) && $content != '')
+			$request .= '?'.$content;
+
+		$ch = curl_init($this->remote_host.':'.$this->remote_port.$request);
+
+		if ($is_ssl)
+		{
+			curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false); //1
+			curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, false); //2
+			//curl_setopt($ch, CURLOPT_SSLVERSION, CURL_SSLVERSION_TLSv1_2);
+		}
+
+		curl_setopt($ch, CURLOPT_HTTP_VERSION, CURL_HTTP_VERSION_1_1);
+		curl_setopt($ch, CURLOPT_RETURNTRANSFER,1);
+		curl_setopt($ch, CURLOPT_USERAGENT, "HTTPSocket/$this->version");
+		curl_setopt($ch, CURLOPT_FORBID_REUSE, 1);
+		curl_setopt($ch, CURLOPT_TIMEOUT, 100);
+		curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 10);
+		curl_setopt($ch, CURLOPT_HEADER, 1);
+
+		if ($this->proxy)
+		{
+			curl_setopt($ch, CURLOPT_RETURNTRANSFER,false);
+			curl_setopt($ch, CURLOPT_HEADER,	false);
+			curl_setopt($ch, CURLINFO_HEADER_OUT,	false);
+			curl_setopt($ch, CURLOPT_BUFFERSIZE, 8192); // 8192
+			curl_setopt($ch, CURLOPT_WRITEFUNCTION,  array($this, "stream_chunk"));
+			curl_setopt($ch, CURLOPT_HEADERFUNCTION, array($this, "stream_header"));
+		}
+
+		curl_setopt($ch, CURLOPT_LOW_SPEED_LIMIT, 512);
+		curl_setopt($ch, CURLOPT_LOW_SPEED_TIME, 120);
+
 		// instance connection
 		if ($this->bind_host)
 		{
-			$socket = socket_create(AF_INET, SOCK_STREAM, SOL_TCP);
-			socket_bind($socket,$this->bind_host);
-
-			if (!@socket_connect($socket,$this->remote_host,$this->remote_port))
-			{
-				$OK = FALSE;
-			}
-
-		}
-		else
-		{
-			$socket = @fsockopen( $this->remote_host, $this->remote_port, $sock_errno, $sock_errstr, 10 );
-		}
-
-		if ( !$socket || !$OK )
-		{
-			$this->error[] = "Can't create socket connection to $this->remote_host:$this->remote_port.";
-			return 0;
+			curl_setopt($ch, CURLOPT_INTERFACE, $this->bind_host);
 		}
 
 		// if we have a username and password, add the header
 		if ( isset($this->remote_uname) && isset($this->remote_passwd) )
 		{
-			$array_headers['Authorization'] = 'Basic '.base64_encode("$this->remote_uname:$this->remote_passwd");
+			curl_setopt($ch, CURLOPT_USERPWD, $this->remote_uname.':'.$this->remote_passwd);
 		}
 
 		// for DA skins: if $this->remote_passwd is NULL, try to use the login key system
 		if ( isset($this->remote_uname) && $this->remote_passwd == NULL )
 		{
-			$array_headers['Cookie'] = "session={$_SERVER['SESSION_ID']}; key={$_SERVER['SESSION_KEY']}";
+			curl_setopt($ch, CURLOPT_COOKIE, "session={$_SERVER['SESSION_ID']}; key={$_SERVER['SESSION_KEY']}");
 		}
 
 		// if method is POST, add content length & type headers
 		if ( $this->method == 'POST' )
 		{
-			$array_headers['Content-type'] = 'application/x-www-form-urlencoded';
+			curl_setopt($ch, CURLOPT_POST, 1);
+			curl_setopt($ch, CURLOPT_POSTFIELDS, $content);
+
+			//$array_headers['Content-type'] = 'application/x-www-form-urlencoded';
 			$array_headers['Content-length'] = strlen($content);
 		}
-		// else method is GET or HEAD. we don't support anything else right now.
-		else
+
+		curl_setopt($ch, CURLOPT_HTTPHEADER, $array_headers);
+
+
+		if( !($this->result = curl_exec($ch)) )
 		{
-			if ($content)
-			{
-				$request .= "?$content";
-			}
+			$this->error[] .= curl_error($ch);
+			$OK = FALSE;
 		}
 
-		// prepare query
-		$query = "$this->method $request HTTP/1.0\r\n";
-		foreach ( $array_headers as $key => $value )
-		{
-			$query .= "$key: $value\r\n";
-		}
-		$query .= "\r\n";
+		$header_size			= curl_getinfo($ch, CURLINFO_HEADER_SIZE);
+		$this->result_header	= substr($this->result, 0, $header_size);
+		$this->result_body		= substr($this->result, $header_size);
+		$this->result_status_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
 
-		// if POST we need to append our content
-		if ( $this->method == 'POST' && $content )
-		{
-			$query .= "$content\r\n\r\n";
-		}
+		$this->lastTransferSpeed = curl_getinfo($ch, CURLINFO_SPEED_DOWNLOAD) / 1024;
 
-		// query connection
-		if ($this->bind_host)
-		{
-			socket_write($socket,$query);
+		curl_close($ch);
 
-			// now load results
-			while ( $out = socket_read($socket,2048) )
-			{
-				$this->result .= $out;
-			}
-		}
-		else
-		{
-			fwrite( $socket, $query, strlen($query) );
-
-			// now load results
-			$this->lastTransferSpeed = 0;
-			$status = socket_get_status($socket);
-			$startTime = time();
-			$length = 0;
-			$prevSecond = 0;
-			while ( !feof($socket) && !$status['timed_out'] )
-			{
-				$chunk = fgets($socket,1024);
-				$length += strlen($chunk);
-				$this->result .= $chunk;
-
-				$elapsedTime = time() - $startTime;
-
-				if ( $elapsedTime > 0 )
-				{
-					$this->lastTransferSpeed = ($length/1024)/$elapsedTime;
-				}
-
-				if ( $doSpeedCheck > 0 && $elapsedTime > 5 && $this->lastTransferSpeed < $doSpeedCheck )
-				{
-					$this->warn[] = "kB/s for last 5 seconds is below 50 kB/s (~".( ($length/1024)/$elapsedTime )."), dropping connection...";
-					$this->result_status_code = 503;
-					break;
-				}
-
-			}
-
-			if ( $this->lastTransferSpeed == 0 )
-			{
-				$this->lastTransferSpeed = $length/1024;
-			}
-
-		}
-		
-		list($this->result_header,$this->result_body) = preg_split("/\r\n\r\n/",$this->result,2);
-
-		if ($this->bind_host)
-		{
-			socket_close($socket);
-		}
-		else
-		{
-			fclose($socket);
-		}
-
-		$this->query_cache[] = $query;
-
+		$this->query_cache[] = $this->remote_host.':'.$this->remote_port.$request;
 
 		$headers = $this->fetch_header();
-
-		// what return status did we get?
-		if (!$this->result_status_code)
-		{
-			preg_match("#HTTP/1\.. (\d+)#",$headers[0],$matches);
-			$this->result_status_code = $matches[1];
-		}
 
 		// did we get the full file?
 		if ( !empty($headers['content-length']) && $headers['content-length'] != strlen($this->result_body) )
@@ -333,7 +326,7 @@ class HTTPSocket {
 				$this->query($headers['location']);
 			}
 		}
-		
+
 	}
 
 	function getTransferSpeed()
@@ -416,13 +409,17 @@ class HTTPSocket {
 	 */
 	function fetch_header( $header = '' )
 	{
+		if ($this->proxy)
+			return $this->proxy_headers;
+
 		$array_headers = preg_split("/\r\n/",$this->result_header);
-		
+
 		$array_return = array( 0 => $array_headers[0] );
 		unset($array_headers[0]);
 
 		foreach ( $array_headers as $pair )
 		{
+			if ($pair == '' || $pair == "\r\n") continue;
 			list($key,$value) = preg_split("/: /",$pair,2);
 			$array_return[strtolower($key)] = $value;
 		}
@@ -464,6 +461,6 @@ class HTTPSocket {
 	{
 		$this->ssl_setting_message = $str;
 	}
-}
 
-?>
+
+}
