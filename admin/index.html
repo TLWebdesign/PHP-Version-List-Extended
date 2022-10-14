@@ -75,15 +75,13 @@ $sock->query('/CMD_API_SYSTEM_INFO');
 $systemInfo = $sock->fetch_parsed_body();
 
 $systemInfo['php']  = colorize($systemInfo['php']);
-if (PHP_MAJOR_VERSION < 7) {
-    $systemInfo['php2'] = colorize(isset($systemInfo['php2']) ? $systemInfo['php2'] : '');
-    $systemInfo['php3'] = colorize(isset($systemInfo['php3']) ? $systemInfo['php3'] : '');
-    $systemInfo['php4'] = colorize(isset($systemInfo['php4']) ? $systemInfo['php4'] : '');
-} else {
-    $systemInfo['php2'] = colorize($systemInfo['php2'] ?? '');
-    $systemInfo['php3'] = colorize($systemInfo['php3'] ?? '');
-    $systemInfo['php4'] = colorize($systemInfo['php4'] ?? '');
-}
+$systemInfo['php2'] = colorize(isset($systemInfo['php2']) ? $systemInfo['php2'] : '');
+$systemInfo['php3'] = colorize(isset($systemInfo['php3']) ? $systemInfo['php3'] : '');
+$systemInfo['php4'] = colorize(isset($systemInfo['php4']) ? $systemInfo['php4'] : '');
+//TODO: activate once you don't support PHP 5 anymore!
+//$systemInfo['php2'] = colorize($systemInfo['php2'] ?? '');
+//$systemInfo['php3'] = colorize($systemInfo['php3'] ?? '');
+//$systemInfo['php4'] = colorize($systemInfo['php4'] ?? '');
 
 /**
  *
