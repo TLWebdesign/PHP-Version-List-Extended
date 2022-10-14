@@ -106,8 +106,9 @@ function translateValueToVersion($phpEnabled, $value)
     return;
 }
 
-// read all the directadmin users data config files
-$phpConfigData = shell_exec("grep php /usr/local/directadmin/data/users/*/domains/*.conf");
+// read all the directadmin users data config files. /dev/null added to have at least 2 files to search on as with only
+// 1 match (domain) it won't show you the path
+$phpConfigData = shell_exec("grep php /usr/local/directadmin/data/users/*/domains/*.conf /dev/null");
 preg_match_all("/users\/(?P<user>.*)\/domains\/(?P<domain>.*)\.conf\:(?P<data>.*)\n/U", $phpConfigData, $matches);
 
 $list   = [];
