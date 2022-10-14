@@ -1,5 +1,5 @@
 #!/usr/local/bin/php -nc/usr/local/directadmin/plugins/phpversionlist/php.ini
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.0/dist/css/bootstrap.min.css" integrity="sha384-B0vP5xmATw1+K9KRQjQERJvTumQW0nPEzvF6L/Z6nronJ3oUOFUFpCjEUQouq2+l" crossorigin="anonymous">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-Zenh87qX5JnK2Jl0vWa8Ck2rdkQ2Bzep5IDxbcnCeuOxjzrPF/et3URy9Bv1WTRi" crossorigin="anonymous">
 
 <?php
 
@@ -212,10 +212,10 @@ foreach ($list as $user => $domains) {
             echo "
             <tr>
                 <th scope=\"row\">PHP {$version}</th>
-                <td class=\"text-right\">{$stats[1][$key]}</td>
-                <td class=\"text-right\">{$stats[2][$key]}</td>
-                <td class=\"text-right\">{$stats[3][$key]}</td>
-                <td class=\"text-right\">{$stats[4][$key]}</td>
+                <td class=\"text-end\">{$stats[1][$key]}</td>
+                <td class=\"text-end\">{$stats[2][$key]}</td>
+                <td class=\"text-end\">{$stats[3][$key]}</td>
+                <td class=\"text-end\">{$stats[4][$key]}</td>
             </tr>\n";
         }
         ?>
