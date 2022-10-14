@@ -35,3 +35,12 @@ In the past it was required that the `shell_exec` function was not in the list o
 The `shell_exec` function is used to read out the users configuration file to see which php version is configured per domain.  
 Now the page using the `shell_exec` function is loading a php.ini file which is included in this plugin to be sure it's able to run.  
 Credits for this tip goes to the DirectAdmin user zEitEr and to the Bitbucket user Kyle Adams for the fork and implementation.
+
+---
+
+#### Create the plugin package
+
+```
+> project root folder
+> tar czvf phpversionlist.tar.gz --exclude='.idea' --exclude='.git' *
+```
