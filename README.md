@@ -17,6 +17,14 @@ Log in as an admin on DirectAdmin and go to the Plugin Manager page.
 Click the add button and paste the url of the plugin package: https://wavoe.bitbucket.io/phpversionlist/phpversionlist.tar.gz  
 Fill the other needed fields and choose if you want to install directly after uploading.
 
+## HTTPSocket
+
+Using [HTTPSocket communicating class](https://files.directadmin.com/services/all/httpsocket/) to communicate with the
+DirectAdmin API.  
+Version used: `3.0.4` + one customization done. See the curl CURLOPT_REFERER line.  
+Modification done to avoid issues with the referer check in DA (The request was made without a referer header ...)  
+If you use a login:passwd the issue will not be there but as we don't have the user password we have to work like this.
+
 ## Use of shell_exec (info)
 In the past it was required that the `shell_exec` function was not in the list of `disable_functions` in your global php.ini file.  
 The `shell_exec` function is used to read out the users configuration file to see which php version is configured per domain.  
