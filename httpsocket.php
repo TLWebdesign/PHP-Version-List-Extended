@@ -244,8 +244,8 @@ class HTTPSocket {
 		curl_setopt($ch, CURLOPT_TIMEOUT, 100);
 		curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 10);
 		curl_setopt($ch, CURLOPT_HEADER, 1);
-        // customization to avoid issues with the referer check in DA (The request was made without a referer header ...)
-        curl_setopt($ch, CURLOPT_REFERER, 'https://' . $this->remote_host . ':' . $this->remote_port);
+		// customization to avoid issues with the referer check in DA (The request was made without a referer header ...)
+		curl_setopt($ch, CURLOPT_REFERER, $this->remote_host . ':' . $this->remote_port);
 
 		if ($this->proxy)
 		{
