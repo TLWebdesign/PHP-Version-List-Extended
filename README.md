@@ -42,5 +42,5 @@ Credits for this tip goes to the DirectAdmin user zEitEr and to the Bitbucket us
 
 ```
 > project root folder
-> tar czvf phpversionlist.tar.gz --exclude='.idea' --exclude='.git' *
+> tar czvf phpversionlist.tar.gz --exclude='.idea' --exclude='.git' --exclude='phpversionlist.tar.gz' *
 ```
