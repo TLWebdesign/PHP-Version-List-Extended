@@ -1,5 +1,5 @@
 #!/usr/local/bin/php -nc/usr/local/directadmin/plugins/phpversionlist/php.ini
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.0/dist/css/bootstrap.min.css" integrity="sha384-B0vP5xmATw1+K9KRQjQERJvTumQW0nPEzvF6L/Z6nronJ3oUOFUFpCjEUQouq2+l" crossorigin="anonymous">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-Zenh87qX5JnK2Jl0vWa8Ck2rdkQ2Bzep5IDxbcnCeuOxjzrPF/et3URy9Bv1WTRi" crossorigin="anonymous">
 
 <?php
 
@@ -75,9 +75,13 @@ $sock->query('/CMD_API_SYSTEM_INFO');
 $systemInfo = $sock->fetch_parsed_body();
 
 $systemInfo['php']  = colorize($systemInfo['php']);
-$systemInfo['php2'] = colorize($systemInfo['php2']);
-$systemInfo['php3'] = colorize($systemInfo['php3']);
-$systemInfo['php4'] = colorize($systemInfo['php4']);
+$systemInfo['php2'] = colorize(isset($systemInfo['php2']) ? $systemInfo['php2'] : '');
+$systemInfo['php3'] = colorize(isset($systemInfo['php3']) ? $systemInfo['php3'] : '');
+$systemInfo['php4'] = colorize(isset($systemInfo['php4']) ? $systemInfo['php4'] : '');
+//TODO: activate once you don't support PHP 5 anymore!
+//$systemInfo['php2'] = colorize($systemInfo['php2'] ?? '');
+//$systemInfo['php3'] = colorize($systemInfo['php3'] ?? '');
+//$systemInfo['php4'] = colorize($systemInfo['php4'] ?? '');
 
 /**
  *
@@ -106,8 +110,9 @@ function translateValueToVersion($phpEnabled, $value)
     return;
 }
 
-// read all the directadmin users data config files
-$phpConfigData = shell_exec("grep php /usr/local/directadmin/data/users/*/domains/*.conf");
+// read all the directadmin users data config files. /dev/null added to have at least 2 files to search on as with only
+// 1 match (domain) it won't show you the path
+$phpConfigData = shell_exec("grep php /usr/local/directadmin/data/users/*/domains/*.conf /dev/null");
 preg_match_all("/users\/(?P<user>.*)\/domains\/(?P<domain>.*)\.conf\:(?P<data>.*)\n/U", $phpConfigData, $matches);
 
 $list   = [];
@@ -205,10 +210,10 @@ foreach ($list as $user => $domains) {
             echo "
             <tr>
                 <th scope=\"row\">PHP {$version}</th>
-                <td class=\"text-right\">{$stats[1][$key]}</td>
-                <td class=\"text-right\">{$stats[2][$key]}</td>
-                <td class=\"text-right\">{$stats[3][$key]}</td>
-                <td class=\"text-right\">{$stats[4][$key]}</td>
+                <td class=\"text-end\">{$stats[1][$key]}</td>
+                <td class=\"text-end\">{$stats[2][$key]}</td>
+                <td class=\"text-end\">{$stats[3][$key]}</td>
+                <td class=\"text-end\">{$stats[4][$key]}</td>
             </tr>\n";
         }
         ?>
