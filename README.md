@@ -9,7 +9,7 @@ And a detailed overview of which PHP version(s) are used per domain.
 ## Requirements
 
 * DirectAdmin 1.640 and up
-* DirectAdmin via https (httpsocket is working via ssl://...) and on port 2222
+* DirectAdmin via https (httpsocket is working via ssl://...) (used port doesn't matter)
 * PHP 7.4 and up
 * Custombuild 2.0 (for the different PHP versions installation)
 * Minimum 2 different installed PHP versions (else this plugin is not useful for you)
