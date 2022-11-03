@@ -40,6 +40,8 @@ Credits for this tip goes to the DirectAdmin user zEitEr and to the Bitbucket us
 
 #### Create the plugin package
 
+Line separator of each file in the scripts directory should be LF before creating the tar file.
+
 ```
 > project root folder
 > tar czvf phpversionlist.tar.gz --exclude='.idea' --exclude='.git' --exclude='phpversionlist.tar.gz' *
