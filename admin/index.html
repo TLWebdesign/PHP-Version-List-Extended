@@ -69,7 +69,7 @@ function phpVersionCompare($a, $b)
 
 // fetch PHP versions via an API call (no rights to access the custombuild options.conf file)
 $sock = new HTTPSocket;
-$sock->connect("ssl://" . $_SERVER['HTTP_HOST'], 2222);
+$sock->connect("ssl://" . $_SERVER['HTTP_HOST'], $_SERVER['SERVER_PORT']);
 $sock->set_login($_SERVER['USER']);
 $sock->query('/CMD_API_SYSTEM_INFO');
 $systemInfo = $sock->fetch_parsed_body();
