@@ -163,9 +163,9 @@ foreach ($versionKeys as $keyValue) {
 }
 uasort($phpVersions, 'phpVersionCompare');
 
-// create a multidimensional array with first key the first / second / .. php selector and second key the phpversion (key)
+// create a multidimensional array with first key the first / second php selector and as second key the phpversion (key)
 $stats = [];
-for ($i = 1; $i <= 4; $i++) {
+for ($i = 1; $i <= 2; $i++) {
     for ($j = 1; $j <= 4; $j++) {
         $stats[$i][$j] = 0;
     }
@@ -176,7 +176,7 @@ foreach ($list as $user => $domains) {
     foreach ($domains as $domain => $settings) {
         // only want to take phpx_select and use the value
         foreach ($settings as $k => $v) {
-            if (!preg_match('/php([1-4])_select/', $k, $matches) || intval($v) == 0) {
+            if (!preg_match('/php([1-2])_select/', $k, $matches) || intval($v) == 0) {
                 continue;
             }
 
@@ -194,8 +194,6 @@ foreach ($list as $user => $domains) {
             <th scope="col"></th>
             <th scope="col">First PHP</th>
             <th scope="col">Second PHP</th>
-            <th scope="col">Third PHP</th>
-            <th scope="col">Fourth PHP</th>
         </tr>
         </thead>
 
@@ -212,8 +210,6 @@ foreach ($list as $user => $domains) {
                 <th scope=\"row\">PHP {$version}</th>
                 <td class=\"text-end\">{$stats[1][$key]}</td>
                 <td class=\"text-end\">{$stats[2][$key]}</td>
-                <td class=\"text-end\">{$stats[3][$key]}</td>
-                <td class=\"text-end\">{$stats[4][$key]}</td>
             </tr>\n";
         }
         ?>
@@ -231,8 +227,6 @@ foreach ($list as $user => $domains) {
             <th scope="col">PHP</th>
             <th scope="col">First PHP</th>
             <th scope="col">Second PHP</th>
-            <th scope="col">Third PHP</th>
-            <th scope="col">Fourth PHP</th>
         </tr>
         </thead>
 
@@ -245,14 +239,8 @@ foreach ($list as $user => $domains) {
                 $firstPhp   = translateValueToVersion($settings['php'], $firstPhp);
                 $secondPhp  = (isset($settings['php2_select'])) ? $settings['php2_select'] : null;
                 $secondPhp  = translateValueToVersion($settings['php'], $secondPhp);
-                $thirdPhp   = (isset($settings['php3_select'])) ? $settings['php3_select'] : null;
-                $thirdPhp   = translateValueToVersion($settings['php'], $thirdPhp);
-                $fourthPhp  = (isset($settings['php4_select'])) ? $settings['php4_select'] : null;
-                $fourthPhp  = translateValueToVersion($settings['php'], $fourthPhp);
 
-                echo "<tr><td>{$user}</td> <td>{$domain}</td> <td>{$phpEnabled}</td> "
-                    . "<td>{$firstPhp}</td> <td>{$secondPhp}</td> <td>{$thirdPhp}</td> "
-                    . "<td>{$fourthPhp}</td></tr>\n";
+                echo "<tr><td>{$user}</td> <td>{$domain}</td> <td>{$phpEnabled}</td> <td>{$firstPhp}</td> <td>{$secondPhp}</td></tr>\n";
             }
         }
         ?>
