@@ -111,8 +111,9 @@ function translateValueToVersion($phpEnabled, $value)
 }
 
 // read all the directadmin users data config files. /dev/null added to have at least 2 files to search on as with only
-// 1 match (domain) it won't show you the path
-$phpConfigData = shell_exec("grep php /usr/local/directadmin/data/users/*/domains/*.conf /dev/null");
+// 1 match (domain) it won't show you the path.
+// ignore files which ends with .hotlink.conf
+$phpConfigData = shell_exec("grep ^php `find /usr/local/directadmin/data/users/*/domains -type f -regex '.*\.conf$' | grep -P '.*(?<!\.hotlink).conf$'` /dev/null");
 preg_match_all("/users\/(?P<user>.*)\/domains\/(?P<domain>.*)\.conf\:(?P<data>.*)\n/U", $phpConfigData, $matches);
 
 $list   = [];
