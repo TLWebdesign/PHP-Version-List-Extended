@@ -24,6 +24,10 @@ This version includes substantial rewrites and enhancements to support modern Di
 
 ## Changelog
 
+### Version 1.0.2
+* Added Sorting and Search (column|row) options to the domains table
+* Fixed subdomain detection
+
 ### Version 1.0.1
 * Added reseller column to admin view.
 * Added 15 min caching to the API call for the system info (was slowing the page load down by 0.8 sec)

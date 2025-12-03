@@ -1,3 +1,70 @@
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5/dist/css/bootstrap.min.css" rel="stylesheet" crossorigin="anonymous">
+<script src="https://cdn.jsdelivr.net/npm/table-sort-js@latest/table-sort.js" crossorigin="anonymous"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    var input = document.getElementById('domainsSearch');
+    var table = document.getElementById('domainsTable');
+
+    if (!input || !table || !table.tBodies.length || !table.tHead || !table.tHead.rows.length) {
+        return;
+    }
+
+    var tbody = table.tBodies[0];
+    var headerCells = table.tHead.rows[0].cells;
+
+    // Build a map of column-key => column index based on the header data attributes
+    var columnIndexByKey = {};
+    Array.prototype.forEach.call(headerCells, function (th, index) {
+        var key = th.getAttribute('data-column-key');
+        if (key) {
+            columnIndexByKey[key.toLowerCase()] = index;
+        }
+    });
+
+    input.addEventListener('input', function () {
+        var raw = this.value || '';
+        var q = raw.trim().toLowerCase();
+
+        var columnIndex = null;
+
+        // Support syntax like: "domain:example", "user:john", "reseller:acme"
+        var colonPos = q.indexOf(':');
+        if (colonPos > 0) {
+            var prefix = q.substring(0, colonPos).trim();
+            var term = q.substring(colonPos + 1).trim();
+
+            if (prefix && term && columnIndexByKey.hasOwnProperty(prefix)) {
+                columnIndex = columnIndexByKey[prefix];
+                q = term; // search term without the prefix
+            }
+        }
+
+        Array.prototype.forEach.call(tbody.rows, function (row) {
+            if (!q) {
+                row.classList.remove('d-none');
+                return;
+            }
+
+            var match = false;
+
+            if (columnIndex !== null) {
+                var cell = row.cells[columnIndex];
+                var text = cell ? cell.textContent.toLowerCase() : '';
+                match = text.indexOf(q) !== -1;
+            } else {
+                var rowText = row.textContent.toLowerCase();
+                match = rowText.indexOf(q) !== -1;
+            }
+
+            if (match) {
+                row.classList.remove('d-none');
+            } else {
+                row.classList.add('d-none');
+            }
+        });
+    });
+});
+</script>
 <?php
 
 if (!function_exists('shell_exec')) {
@@ -340,8 +407,9 @@ foreach ($list as $user => $domains) {
             // If there is an explicit php1_select override, use it; otherwise inherit from main domain
             $subPhpSel = isset($subOverrides[$subName]) ? $subOverrides[$subName] : $mainPhpSel;
 
-            $list[$user][$subDomainFqdn]['php']         = $mainPhpFlag;
-            $list[$user][$subDomainFqdn]['php1_select'] = $subPhpSel;
+            $list[$user][$subDomainFqdn]['php']          = $mainPhpFlag;
+            $list[$user][$subDomainFqdn]['php1_select']  = $subPhpSel;
+            $list[$user][$subDomainFqdn]['is_subdomain'] = true;
         }
     }
 }
@@ -361,8 +429,12 @@ foreach ($list as $user => $domains) {
             $list[$user][$domain] = $data;
         } else {
             if ($phpFlag === 'OFF') {
-                // When PHP is disabled, ignore all other settings for that (sub)domain
-                $list[$user][$domain] = ['php' => 'OFF'];
+                // When PHP is disabled, ignore all other settings for that (sub)domain but keep subdomain flag if present
+                $newData = ['php' => 'OFF'];
+                if (!empty($data['is_subdomain'])) {
+                    $newData['is_subdomain'] = $data['is_subdomain'];
+                }
+                $list[$user][$domain] = $newData;
             } else {
                 // Ensure the php flag is present for later logic
                 $data['php']          = $phpFlag;
@@ -433,7 +505,7 @@ filterListForCurrentUser($list);
 <h3 class="text-center">PHP version summary</h3>
 <p class="text-center text-muted mb-3">Including main domains and subdomains.</p>
 <div class="table-responsive px-3 mb-4">
-    <table class="table table-striped table-hover table-sm">
+    <table  id="statsTable" class="table table-striped table-hover table-sm">
         <thead>
         <tr>
             <th scope="col">PHP Version</th>
@@ -474,18 +546,26 @@ filterListForCurrentUser($list);
 
 <h3 class="text-center">PHP version overview per domain</h3>
 <p class="text-center text-muted mb-3">Domains and subdomains as configured in DirectAdmin.</p>
+
+<div class="px-3 mb-2">
+    <input type="search"
+           id="domainsSearch"
+           class="form-control form-control-sm"
+           placeholder="Filter by user, reseller or domain (column search column-key:value)">
+</div>
+
 <div class="table-responsive px-3 mb-4">
-    <table class="table table-striped table-hover table-sm">
+    <table id="domainsTable" class="table table-striped table-hover table-sm table-sort">
         <thead>
         <tr>
-            <th scope="col">#</th>
-            <th scope="col">User</th>
+            <th scope="col" data-column-key="id">#</th>
+            <th scope="col" data-column-key="user">User</th>
             <?php if ($isAdminView) : ?>
-                <th scope="col">Reseller</th>
+                <th scope="col" data-column-key="reseller">Reseller</th>
             <?php endif; ?>
-            <th scope="col">Domain</th>
-            <th scope="col">PHP</th>
-            <th scope="col">PHP Version</th>
+            <th scope="col" class="data-sort" data-column-key="domain">Domain</th>
+            <th scope="col" data-column-key="php">PHP</th>
+            <th scope="col" data-column-key="php-version">PHP Version</th>
         </tr>
         </thead>
 
@@ -508,15 +588,16 @@ filterListForCurrentUser($list);
                 $firstPhpId = isset($settings['php1_select']) ? $settings['php1_select'] : '1';
                 $firstPhp   = translateValueToVersion($phpFlag, $firstPhpId);
 
-                // Consider it a subdomain if it has more than one dot (e.g. sub.example.com)
-                $isSubdomain = (substr_count($domain, '.') > 1);
+                // Consider it a subdomain when flagged during parsing
+                $isSubdomain = !empty($settings['is_subdomain']);
+
+                $domainEsc = htmlspecialchars($domain, ENT_QUOTES, 'UTF-8');
 
                 if ($isSubdomain) {
-                    // Visually indent subdomains and use a subtle arrow marker via Bootstrap spacing and muted text
-                    $domainDisplay = '<span class="ps-4 text-muted">↳ ' . htmlspecialchars($domain, ENT_QUOTES, 'UTF-8') . '</span>';
+                    // Show subdomains with a Bootstrap badge instead of a leading icon
+                    $domainDisplay = ' <span class="badge bg-secondary me-2">sub</span>' . $domainEsc;
                 } else {
-                    // Emphasize main domains
-                    $domainDisplay = htmlspecialchars($domain, ENT_QUOTES, 'UTF-8');
+                    $domainDisplay = $domainEsc;
                 }
 
                 // Emphasize the current DA user in the User column
@@ -545,9 +626,9 @@ filterListForCurrentUser($list);
                 }
 
                 if ($isAdminView) {
-                    echo "<tr{$rowClass}><td>{$rowNumber}</td> <td>{$linkUser}</td> <td>{$resellerEsc}</td> <td>{$domainDisplay}</td> <td>{$phpEnabled}</td> <td>{$firstPhp}</td></tr>\n";
+                    echo "<tr{$rowClass}><td>{$rowNumber}</td> <td>{$linkUser}</td> <td>{$resellerEsc}</td> <td data-sort='{$domainEsc}'>{$domainDisplay}</td> <td>{$phpEnabled}</td> <td>{$firstPhp}</td></tr>\n";
                 } else {
-                    echo "<tr{$rowClass}><td>{$rowNumber}</td> <td>{$linkUser}</td> <td>{$domainDisplay}</td> <td>{$phpEnabled}</td> <td>{$firstPhp}</td></tr>\n";
+                    echo "<tr{$rowClass}><td>{$rowNumber}</td> <td>{$linkUser}</td> <td data-sort='{$domainEsc}'>{$domainDisplay}</td> <td>{$phpEnabled}</td> <td>{$firstPhp}</td></tr>\n";
                 }
 
                 $rowNumber++;
