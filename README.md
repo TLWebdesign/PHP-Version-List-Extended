@@ -17,6 +17,9 @@ This version is a fork from the original php version list extended plugin versio
 * Added subdomains to the list
 * Removed the maximum php version logic. It is now dynamic and will show the installed php versions.
 * Added reseller view where a reseller is able to see the domains for the users he created and his own account.
+* Extended the stats table with % column
+* Added link to open user account directly from plugin.
+* 
 
 ---
 

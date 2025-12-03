@@ -108,17 +108,22 @@ function colorize($version)
         $allBranches[] = $supportedVersion['branch'];
 
         if (preg_match('/^' . $supportedVersion['branch'] . '/', $version)) {
-            $color = ($supportedVersion['status'] === 'security') ? '#f93' : 'black';
-            $color = ($supportedVersion['status'] === 'stable') ? '#9c9' : $color;
+            // Bootstrap color classes
+            $class = 'fw-bold';
+            if ($supportedVersion['status'] === 'security') {
+                $class .= ' text-warning';
+            } elseif ($supportedVersion['status'] === 'stable') {
+                $class .= ' text-success';
+            }
 
-            $colorized = '<span style="font-weight: bold; color: ' . $color . '">' . $version . '</span>';
+            $colorized = '<span class="' . $class . '">' . $version . '</span>';
             break;
         }
     }
 
     if (empty($colorized)) {
         if ((float)$version < (float)min($allBranches)) {
-            $colorized = '<span style="font-weight: bold; color: #f33">' . $version . '</span>';
+            $colorized = '<span class="fw-bold text-danger">' . $version . '</span>';
         } else {
             $colorized = $version;
         }
@@ -164,7 +169,7 @@ function translateValueToVersion($phpEnabled, $value)
     global $systemInfo;
 
     if ($phpEnabled !== 'ON') {
-        return;
+        return '';
     }
 
     // Explicit 0 or empty means PHP is off for this selector
@@ -174,7 +179,7 @@ function translateValueToVersion($phpEnabled, $value)
 
     $installId = (int) $value;
     if ($installId < 1) {
-        return;
+        return '';
     }
 
     // In DirectAdmin, "1" maps to "php", "2" to "php2", etc.
@@ -371,13 +376,15 @@ foreach ($list as $user => $domains) {
 
 $totalUsage = array_sum($stats);
 ?>
-<h3 style="padding-left: 10px">PHP version summary</h3>
-<div class="table-responsive px-3">
-    <table class="table table-striped table-hover" cellspacing="1" cellpadding="3" style="width: auto !important;">
+<h3 class="text-center">PHP version summary</h3>
+<p class="text-center text-muted mb-3">Including main domains and subdomains.</p>
+<div class="table-responsive px-3 mb-4">
+    <table class="table table-striped table-hover table-sm">
         <thead>
         <tr>
-            <th scope="col"></th>
-            <th scope="col">Usage</th>
+            <th scope="col">PHP Version</th>
+            <th scope="col" class="text-end">Usage</th>
+            <th scope="col" class="text-end">Percent</th>
         </tr>
         </thead>
 
@@ -390,11 +397,13 @@ $totalUsage = array_sum($stats);
             }
 
             $count = $stats[$key] ?? 0;
+            $percent = ($totalUsage > 0) ? round(($count / $totalUsage) * 100, 1) . '%' : '0%';
 
             echo "
             <tr>
-                <th scope=\"row\">PHP {$version}</th>
+                <td>{$version}</td>
                 <td class=\"text-end\">{$count}</td>
+                <td class=\"text-end\">{$percent}</td>
             </tr>\n";
         }
 
@@ -402,18 +411,20 @@ $totalUsage = array_sum($stats);
             <tr>
                 <th scope=\"row\">Total</th>
                 <td class=\"text-end\">{$totalUsage}</td>
+                <td class=\"text-end\">100%</td>
             </tr>\n";
         ?>
         </tbody>
     </table>
 </div>
 
-<h3 style="padding-left: 10px">PHP version overview per domain</h3>
-<div class="table-responsive px-3">
-    <table class="table table-striped table-hover" cellspacing="1" cellpadding="3">
+<h3 class="text-center">PHP version overview per domain</h3>
+<p class="text-center text-muted mb-3">Domains and subdomains as configured in DirectAdmin.</p>
+<div class="table-responsive px-3 mb-4">
+    <table class="table table-striped table-hover table-sm">
         <thead>
         <tr>
-            <th scope="col">Nr</th>
+            <th scope="col">#</th>
             <th scope="col">User</th>
             <th scope="col">Domain</th>
             <th scope="col">PHP</th>
@@ -423,16 +434,43 @@ $totalUsage = array_sum($stats);
 
         <tbody>
         <?php
-        $rowNumber = 1;
+        $rowNumber     = 1;
+        $currentDaUser = isset($_SERVER['USER']) ? $_SERVER['USER'] : '';
+
         foreach ($list as $user => $domains) {
             foreach ($domains as $domain => $settings) {
-                $phpFlag    = isset($settings['php']) ? $settings['php'] : 'ON';
-                $phpEnabled = ($phpFlag === 'ON') ? '<span style="color: green">ON</span>' : '<span style="color: red; font-weight: bold">OFF</span>';
+                $phpFlag = isset($settings['php']) ? $settings['php'] : 'ON';
+
+                // Highlight rows where PHP is disabled
+                $rowClass = ($phpFlag === 'OFF') ? ' class="table-danger"' : '';
+
+                $phpEnabled = ($phpFlag === 'ON')
+                    ? '<span class="text-success">ON</span>'
+                    : '<span class="text-danger fw-bold">OFF</span>';
 
                 $firstPhpId = isset($settings['php1_select']) ? $settings['php1_select'] : '1';
                 $firstPhp   = translateValueToVersion($phpFlag, $firstPhpId);
 
-                echo "<tr><td>{$rowNumber}</td> <td>{$user}</td> <td>{$domain}</td> <td>{$phpEnabled}</td> <td>{$firstPhp}</td></tr>\n";
+                // Consider it a subdomain if it has more than one dot (e.g. sub.example.com)
+                $isSubdomain = (substr_count($domain, '.') > 1);
+
+                if ($isSubdomain) {
+                    // Visually indent subdomains and use a subtle arrow marker via Bootstrap spacing and muted text
+                    $domainDisplay = '<span class="ps-4 text-muted">↳ ' . htmlspecialchars($domain, ENT_QUOTES, 'UTF-8') . '</span>';
+                } else {
+                    // Emphasize main domains
+                    $domainDisplay = '<strong>' . htmlspecialchars($domain, ENT_QUOTES, 'UTF-8') . '</strong>';
+                }
+
+                // Emphasize the current DA user in the User column
+                $userEsc   = htmlspecialchars($user, ENT_QUOTES, 'UTF-8');
+                $userLabel = ($user === $currentDaUser)
+                    ? '<span class="fw-bold">' . $userEsc . '</span>'
+                    : $userEsc;
+
+                $linkUser = '<a class="link-dark" href="/CMD_SHOW_USER?user=' . $userEsc . '" target="_blank">' . $userLabel . '</a>';
+
+                echo "<tr{$rowClass}><td>{$rowNumber}</td> <td>{$linkUser}</td> <td>{$domainDisplay}</td> <td>{$phpEnabled}</td> <td>{$firstPhp}</td></tr>\n";
                 $rowNumber++;
             }
         }
