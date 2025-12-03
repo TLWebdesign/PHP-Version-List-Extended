@@ -36,14 +36,6 @@ The `shell_exec` function is used to read out the users configuration file to se
 Now the page using the `shell_exec` function is loading a php.ini file which is included in this plugin to be sure it's able to run.  
 Credits for this tip goes to the DirectAdmin user zEitEr and to the Bitbucket user Kyle Adams for the fork and implementation.
 
-## First PHP and Second PHP
-
-In the past you could have 2 live versions (for example: file.php for 5.6, and file.php72 for 7.2 live on their site),
-allow 2 at a time, where those 2 live versions can be chosen from any of the (max) 4 instances from the options.conf.  
-This was possible when you had `php_version_selector=2` in your directadmin configuration.  
-This is only supported for older skins. The Evolution skin will show following warning:
-`php_version_selector=2 setting is not supported by the skin, please consider switching to php_version_selector=1 (default).`  
-The expectation is that this feature will be removed in the future?
 
 ---
 
@@ -53,5 +45,5 @@ Line separator of each file in the scripts directory should be LF before creatin
 
 ```
 > project root folder
-> tar czvf phpversionlist.tar.gz --exclude='.idea' --exclude='.git' --exclude='phpversionlist.tar.gz' *
+> tar czvf php_version_list_extended.tar.gz --exclude='.*' --exclude='version.html' --exclude='php_version_list_extended.tar.gz' *
 ```
