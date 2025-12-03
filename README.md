@@ -1,12 +1,14 @@
 # PHP Version List Extended plugin for DirectAdmin
 
 This plugin provides a clean, Bootstrap-powered overview of all PHP versions used across domains and subdomains on a DirectAdmin server.  
-It shows:
+Features:
 
-* A summary table with total counts and usage percentages
+* A summary table of the php versions in use with total counts and usage percentages
 * A detailed breakdown per (sub)domain
+* Search (row or column) and column sorting
+* Dark mode adhering to EVO theme settings
 * Direct links to user accounts
-* Full reseller scoping support
+* Admin & Reseller views
 
 This plugin is a modernised fork of the original **PHP Version List Extended** (v1.8.0) by **RealityHost**.  
 Original source: https://bitbucket.org/wavoe/phpversionlist/src/master/
