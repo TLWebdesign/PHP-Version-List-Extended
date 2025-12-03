@@ -25,10 +25,24 @@ function resolveTheme() {
 
     return theme;
 }
+function updateLinkTheme(theme) {
+    var links = document.querySelectorAll('a.link-dark, a.link-light');
+
+    Array.prototype.forEach.call(links, function (link) {
+        link.classList.remove('link-dark', 'link-light');
+
+        if (theme === 'dark') {
+            link.classList.add('link-light');
+        } else {
+            link.classList.add('link-dark');
+        }
+    });
+}
 
 document.addEventListener('DOMContentLoaded', function () {
     var theme = resolveTheme();
     document.documentElement.setAttribute('data-bs-theme', theme);
+    updateLinkTheme(theme);
 
     // Search / filter logic for the domains table
     var input = document.getElementById('domainsSearch');
@@ -100,6 +114,7 @@ document.addEventListener('DOMContentLoaded', function () {
             var observer = new MutationObserver(function (mutationsList) {
                 var newTheme = resolveTheme();
                 document.documentElement.setAttribute('data-bs-theme', newTheme);
+                updateLinkTheme(newTheme);
             });
             observer.observe(topBody, {
                 attributes: true,
@@ -623,10 +638,6 @@ filterListForCurrentUser($list);
         foreach ($list as $user => $domains) {
             foreach ($domains as $domain => $settings) {
                 $phpFlag = isset($settings['php']) ? $settings['php'] : 'ON';
-
-                // Highlight rows where PHP is disabled
-                $rowClass = ($phpFlag === 'OFF') ? ' class="table-danger"' : '';
-
                 $phpEnabled = ($phpFlag === 'ON')
                     ? '<span class="text-success">ON</span>'
                     : '<span class="text-danger fw-bold">OFF</span>';
@@ -672,9 +683,9 @@ filterListForCurrentUser($list);
                 }
 
                 if ($isAdminView) {
-                    echo "<tr{$rowClass}><td>{$rowNumber}</td> <td>{$linkUser}</td> <td>{$resellerEsc}</td> <td data-sort='{$domainEsc}'>{$domainDisplay}</td> <td>{$phpEnabled}</td> <td>{$firstPhp}</td></tr>\n";
+                    echo "<tr><td>{$rowNumber}</td> <td>{$linkUser}</td> <td>{$resellerEsc}</td> <td data-sort='{$domainEsc}'>{$domainDisplay}</td> <td>{$phpEnabled}</td> <td>{$firstPhp}</td></tr>\n";
                 } else {
-                    echo "<tr{$rowClass}><td>{$rowNumber}</td> <td>{$linkUser}</td> <td data-sort='{$domainEsc}'>{$domainDisplay}</td> <td>{$phpEnabled}</td> <td>{$firstPhp}</td></tr>\n";
+                    echo "<tr><td>{$rowNumber}</td> <td>{$linkUser}</td> <td data-sort='{$domainEsc}'>{$domainDisplay}</td> <td>{$phpEnabled}</td> <td>{$firstPhp}</td></tr>\n";
                 }
 
                 $rowNumber++;
