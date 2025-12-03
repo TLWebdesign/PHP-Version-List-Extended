@@ -6,7 +6,31 @@
 }
 </style>
 <script>
+// Theme resolution logic: only use parent body's data-mode attribute
+function resolveTheme() {
+    var theme = 'light';
+
+    // Inherit theme from parent (DirectAdmin skin) using body data-mode only
+    try {
+        if (window.top && window.top !== window && window.top.document && window.top.document.body) {
+            var topBody = window.top.document.body;
+            var parentMode = topBody.getAttribute('data-mode');
+            if (parentMode) {
+                theme = parentMode;
+            }
+        }
+    } catch (e) {
+        // Ignore access errors and keep default
+    }
+
+    return theme;
+}
+
 document.addEventListener('DOMContentLoaded', function () {
+    var theme = resolveTheme();
+    document.documentElement.setAttribute('data-bs-theme', theme);
+
+    // Search / filter logic for the domains table
     var input = document.getElementById('domainsSearch');
     var table = document.getElementById('domainsTable');
 
@@ -68,6 +92,23 @@ document.addEventListener('DOMContentLoaded', function () {
             }
         });
     });
+
+    // Listen for theme changes in the parent (if applicable)
+    try {
+        if (window.top && window.top !== window && window.top.document && window.top.document.body) {
+            var topBody = window.top.document.body;
+            var observer = new MutationObserver(function (mutationsList) {
+                var newTheme = resolveTheme();
+                document.documentElement.setAttribute('data-bs-theme', newTheme);
+            });
+            observer.observe(topBody, {
+                attributes: true,
+                attributeFilter: ['data-mode', 'class']
+            });
+        }
+    } catch (e) {
+        // Ignore errors
+    }
 });
 </script>
 <?php
