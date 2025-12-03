@@ -24,6 +24,10 @@ This version includes substantial rewrites and enhancements to support modern Di
 
 ## Changelog
 
+### Version 1.0.1
+* Added reseller column to admin view.
+* Added 15 min caching to the API call for the system info (was slowing the page load down by 0.8 sec)
+
 ### Version 1.0.0 — Initial Release (Fork)
 * Removed second PHP version selector (deprecated in current DA versions)
 * Added subdomain detection and inheritance logic

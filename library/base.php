@@ -21,11 +21,25 @@ $supportedVersions = unserialize(file_get_contents($supportedVersionsDataFile));
 
 function getDaUserInfo($username)
 {
+    static $cache = [];
+
+    $username = (string) $username;
+
+    // Normalize empty username
+    if ($username === '') {
+        return ['usertype' => null, 'creator' => null];
+    }
+
+    if (isset($cache[$username])) {
+        return $cache[$username];
+    }
+
     $info    = ['usertype' => null, 'creator' => null];
     $baseDir = '/usr/local/directadmin/data/users/';
     $file    = $baseDir . $username . '/user.conf';
 
     if (!is_file($file)) {
+        $cache[$username] = $info;
         return $info;
     }
 
@@ -45,6 +59,8 @@ function getDaUserInfo($username)
             $info['creator'] = $value;
         }
     }
+
+    $cache[$username] = $info;
 
     return $info;
 }
@@ -149,12 +165,45 @@ function phpVersionCompare($a, $b)
     return ($a < $b) ? -1 : 1;
 }
 
-// fetch PHP versions via an API call (no rights to access the custombuild options.conf file)
-$sock = new HTTPSocket;
-$sock->connect("ssl://" . $_SERVER['HTTP_HOST'], $_SERVER['SERVER_PORT']);
-$sock->set_login($_SERVER['USER']);
-$sock->query('/CMD_API_SYSTEM_INFO');
-$systemInfo = $sock->fetch_parsed_body();
+$systemInfo           = null;
+// Fetch PHP versions via the DirectAdmin API instead of parsing CustomBuild configuration files,
+// and cache the result for a short period to avoid repeated HTTPSocket overhead.
+$systemInfo           = null;
+$systemInfoCacheFile  = dirname(__DIR__) . '/systemInfo.cache';
+$systemInfoCacheTtl   = 900; // 15 minutes
+
+if (is_file($systemInfoCacheFile)) {
+    $raw = @file_get_contents($systemInfoCacheFile);
+
+    if ($raw !== false) {
+        $cached = @unserialize($raw);
+
+        if (is_array($cached)
+            && isset($cached['generated'])
+            && isset($cached['systemInfo'])
+            && (time() - (int) $cached['generated'] < $systemInfoCacheTtl)
+            && is_array($cached['systemInfo'])
+        ) {
+            $systemInfo = $cached['systemInfo'];
+        }
+    }
+}
+
+if ($systemInfo === null) {
+    $sock = new HTTPSocket;
+    $sock->connect("ssl://" . $_SERVER['HTTP_HOST'], $_SERVER['SERVER_PORT']);
+    $sock->set_login($_SERVER['USER']);
+    $sock->query('/CMD_API_SYSTEM_INFO');
+    $systemInfo = $sock->fetch_parsed_body();
+
+    // Store fresh data in cache
+    $payload = [
+        'generated'  => time(),
+        'systemInfo' => is_array($systemInfo) ? $systemInfo : [],
+    ];
+
+    @file_put_contents($systemInfoCacheFile, serialize($payload));
+}
 
 // Colorize all PHP version entries dynamically (php, php2, php3, ..., php10)
 $keys        = array_keys($systemInfo);
@@ -297,10 +346,10 @@ foreach ($list as $user => $domains) {
     }
 }
 
-// not all config files have a variable php1_select, this is causing an incorrect count in the summary table
-// my feeling is that when you create an account and you do not touch the PHP version settings that the php1_select variable
-// will not be in the file and DirectAdmin is for them taking the first PHP version version.
-// also a second correction will be done if the php variable has the value OFF, unset all other variables from the data array.
+// Not all config files have a php1_select variable, which would otherwise cause an incorrect count in the summary table.
+// When an account is created and the PHP version settings are not changed, DirectAdmin appears to omit php1_select
+// and implicitly uses the first configured PHP version. We normalise this to php1_select = 1 when PHP is ON.
+// As a second correction, when PHP is disabled (php = OFF), all other settings for that (sub)domain are discarded.
 foreach ($list as $user => $domains) {
     foreach ($domains as $domain => $data) {
         // For some subdomain configs there may be no explicit "php" flag; assume ON by default
@@ -326,61 +375,60 @@ foreach ($list as $user => $domains) {
 // Filter the list based on the current DirectAdmin user (admin/reseller/user)
 filterListForCurrentUser($list);
 
-/*
-// make the values unique
-$params = array_unique($params);
-var_dump($params);
-*/
 
-$keys        = array_keys($systemInfo);
-$versionKeys = preg_grep('/^php(\d*)$/', $keys);
+ $keys        = array_keys($systemInfo);
+ $versionKeys = preg_grep('/^php(\d*)$/', $keys);
 
-// build an array with key the php install id (1, .., N) and as value the php version
-$phpVersions = [];
-foreach ($versionKeys as $keyValue) {
-    if ($keyValue === 'php') {
-        $num = 1;
-    } else {
-        $suffix = substr($keyValue, 3); // after "php"
-        $num    = (int) $suffix;
-        if ($num < 2) {
-            $num = 1;
-        }
-    }
+ // build an array with key the php install id (1, .., N) and as value the php version
+ $phpVersions = [];
+ foreach ($versionKeys as $keyValue) {
+     if ($keyValue === 'php') {
+         $num = 1;
+     } else {
+         $suffix = substr($keyValue, 3); // after "php"
+         $num    = (int) $suffix;
+         if ($num < 2) {
+             $num = 1;
+         }
+     }
 
-    $phpVersions[$num] = $systemInfo[$keyValue];
-}
-uasort($phpVersions, 'phpVersionCompare');
+     $phpVersions[$num] = $systemInfo[$keyValue];
+ }
+ uasort($phpVersions, 'phpVersionCompare');
 
-// create a simple array with key the php install id (1..N) and as value the count
-$stats         = [];
-$phpInstallIds = array_keys($phpVersions);
+ // create a simple array with key the php install id (1..N) and as value the count
+ $stats         = [];
+ $phpInstallIds = array_keys($phpVersions);
 
-foreach ($phpInstallIds as $installId) {
-    $stats[$installId] = 0;
-}
+ foreach ($phpInstallIds as $installId) {
+     $stats[$installId] = 0;
+ }
 
-// loop to build up the stats, only considering php1_select (DA no longer supports a second selector)
-foreach ($list as $user => $domains) {
-    foreach ($domains as $domain => $settings) {
-        if (!isset($settings['php1_select'])) {
-            continue;
-        }
+ // loop to build up the stats, only considering php1_select (DA no longer supports a second selector)
+ foreach ($list as $user => $domains) {
+     foreach ($domains as $domain => $settings) {
+         if (!isset($settings['php1_select'])) {
+             continue;
+         }
 
-        $val = (int) $settings['php1_select'];
-        if ($val === 0) {
-            continue;
-        }
+         $val = (int) $settings['php1_select'];
+         if ($val === 0) {
+             continue;
+         }
 
-        if (!isset($stats[$val])) {
-            $stats[$val] = 0;
-        }
+         if (!isset($stats[$val])) {
+             $stats[$val] = 0;
+         }
 
-        $stats[$val]++;
-    }
-}
+         $stats[$val]++;
+     }
+ }
 
-$totalUsage = array_sum($stats);
+ $totalUsage = array_sum($stats);
+
+ $currentDaUser = isset($_SERVER['USER']) ? $_SERVER['USER'] : '';
+ $viewUserInfo  = getDaUserInfo($currentDaUser);
+ $isAdminView   = isset($viewUserInfo['usertype']) && $viewUserInfo['usertype'] === 'admin';
 ?>
 <h3 class="text-center">PHP version summary</h3>
 <p class="text-center text-muted mb-3">Including main domains and subdomains.</p>
@@ -432,6 +480,9 @@ $totalUsage = array_sum($stats);
         <tr>
             <th scope="col">#</th>
             <th scope="col">User</th>
+            <?php if ($isAdminView) : ?>
+                <th scope="col">Reseller</th>
+            <?php endif; ?>
             <th scope="col">Domain</th>
             <th scope="col">PHP</th>
             <th scope="col">PHP Version</th>
@@ -474,9 +525,31 @@ $totalUsage = array_sum($stats);
                     ? '<span class="fw-bold">' . $userEsc . '</span>'
                     : $userEsc;
 
+                // Build link to the DA user
                 $linkUser = '<a class="link-dark" href="/CMD_SHOW_USER?user=' . $userEsc . '" target="_blank">' . $userLabel . '</a>';
 
-                echo "<tr{$rowClass}><td>{$rowNumber}</td> <td>{$linkUser}</td> <td>{$domainDisplay}</td> <td>{$phpEnabled}</td> <td>{$firstPhp}</td></tr>\n";
+                // Determine reseller name (admin view only)
+                $resellerEsc = '';
+                if ($isAdminView) {
+                    $meta = getDaUserInfo($user);
+
+                    if (isset($meta['usertype']) && $meta['usertype'] === 'reseller') {
+                        $resellerName = $user;
+                    } elseif (!empty($meta['creator'])) {
+                        $resellerName = $meta['creator'];
+                    } else {
+                        $resellerName = '-';
+                    }
+
+                    $resellerEsc = htmlspecialchars($resellerName, ENT_QUOTES, 'UTF-8');
+                }
+
+                if ($isAdminView) {
+                    echo "<tr{$rowClass}><td>{$rowNumber}</td> <td>{$linkUser}</td> <td>{$resellerEsc}</td> <td>{$domainDisplay}</td> <td>{$phpEnabled}</td> <td>{$firstPhp}</td></tr>\n";
+                } else {
+                    echo "<tr{$rowClass}><td>{$rowNumber}</td> <td>{$linkUser}</td> <td>{$domainDisplay}</td> <td>{$phpEnabled}</td> <td>{$firstPhp}</td></tr>\n";
+                }
+
                 $rowNumber++;
             }
         }
