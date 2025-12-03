@@ -682,11 +682,15 @@ filterListForCurrentUser($list);
                     $resellerEsc = htmlspecialchars($resellerName, ENT_QUOTES, 'UTF-8');
                 }
 
+                $rowHtml = "<td>{$rowNumber}</td> <td>{$linkUser}</td>";
+
                 if ($isAdminView) {
-                    echo "<tr><td>{$rowNumber}</td> <td>{$linkUser}</td> <td>{$resellerEsc}</td> <td data-sort='{$domainEsc}'>{$domainDisplay}</td> <td>{$phpEnabled}</td> <td>{$firstPhp}</td></tr>\n";
-                } else {
-                    echo "<tr><td>{$rowNumber}</td> <td>{$linkUser}</td> <td data-sort='{$domainEsc}'>{$domainDisplay}</td> <td>{$phpEnabled}</td> <td>{$firstPhp}</td></tr>\n";
+                    $rowHtml .= " <td>{$resellerEsc}</td>";
                 }
+
+                $rowHtml .= " <td data-sort='{$domainEsc}'>{$domainDisplay}</td> <td>{$phpEnabled}</td> <td>{$firstPhp}</td>";
+
+                echo "<tr>{$rowHtml}</tr>\n";
 
                 $rowNumber++;
             }
