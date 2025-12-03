@@ -60,9 +60,8 @@ function filterListForCurrentUser(&$list)
     $info = getDaUserInfo($daUser);
     $type = isset($info['usertype']) ? $info['usertype'] : null;
 
-    // Normal user: only see their own domains
+    // Normal user: don't show anything
     if ($type === 'user') {
-        $list = isset($list[$daUser]) ? [$daUser => $list[$daUser]] : [];
         return;
     }
 
