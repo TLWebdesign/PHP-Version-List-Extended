@@ -459,7 +459,7 @@ $totalUsage = array_sum($stats);
                     $domainDisplay = '<span class="ps-4 text-muted">↳ ' . htmlspecialchars($domain, ENT_QUOTES, 'UTF-8') . '</span>';
                 } else {
                     // Emphasize main domains
-                    $domainDisplay = '<strong>' . htmlspecialchars($domain, ENT_QUOTES, 'UTF-8') . '</strong>';
+                    $domainDisplay = htmlspecialchars($domain, ENT_QUOTES, 'UTF-8');
                 }
 
                 // Emphasize the current DA user in the User column
