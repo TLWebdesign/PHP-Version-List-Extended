@@ -1,5 +1,10 @@
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5/dist/css/bootstrap.min.css" rel="stylesheet" crossorigin="anonymous">
 <script src="https://cdn.jsdelivr.net/npm/table-sort-js@latest/table-sort.js" crossorigin="anonymous"></script>
+<style>
+#iframe-container {
+    width: 100%;
+}
+</style>
 <script>
 document.addEventListener('DOMContentLoaded', function () {
     var input = document.getElementById('domainsSearch');
@@ -504,7 +509,7 @@ filterListForCurrentUser($list);
 ?>
 <h3 class="text-center">PHP version summary</h3>
 <p class="text-center text-muted mb-3">Including main domains and subdomains.</p>
-<div class="table-responsive px-3 mb-4">
+<div class="table-responsive px-3 mb-4 col-sm-6 mx-auto">
     <table  id="statsTable" class="table table-striped table-hover table-sm">
         <thead>
         <tr>

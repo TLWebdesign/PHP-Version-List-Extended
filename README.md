@@ -27,6 +27,7 @@ This version includes substantial rewrites and enhancements to support modern Di
 ### Version 1.0.2
 * Added Sorting and Search (column|row) options to the domains table
 * Fixed subdomain detection
+* Improved layout to always be 100% width.
 
 ### Version 1.0.1
 * Added reseller column to admin view.
