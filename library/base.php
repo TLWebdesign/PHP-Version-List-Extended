@@ -60,8 +60,9 @@ function filterListForCurrentUser(&$list)
     $info = getDaUserInfo($daUser);
     $type = isset($info['usertype']) ? $info['usertype'] : null;
 
-    // Normal user: don't show anything
+    // Normal user: show nothing
     if ($type === 'user') {
+        $list = [];
         return;
     }
 
@@ -122,6 +123,11 @@ function colorize($version)
     }
 
     if (empty($colorized)) {
+        // Guard against empty supportedVersions list
+        if (empty($allBranches)) {
+            return $version;
+        }
+
         if ((float)$version < (float)min($allBranches)) {
             $colorized = '<span class="fw-bold text-danger">' . $version . '</span>';
         } else {
@@ -411,7 +417,7 @@ $totalUsage = array_sum($stats);
             <tr>
                 <th scope=\"row\">Total</th>
                 <td class=\"text-end\">{$totalUsage}</td>
-                <td class=\"text-end\">100%</td>
+                <td class=\"text-end\">" . ($totalUsage > 0 ? '100%' : '0%') . "</td>
             </tr>\n";
         ?>
         </tbody>
