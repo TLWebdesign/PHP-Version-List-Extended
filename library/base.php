@@ -4,14 +4,13 @@ if (!function_exists('shell_exec')) {
     echo '<div class="alert alert-danger"><strong>PHP Error:</strong> function shell_exec is not available or disabled.<br>Plugin can not be used until this function is available.</div>';
     return;
 }
+require_once dirname(__DIR__) . '/library/httpsocket.php';
 
-require_once dirname(__DIR__) . '/httpsocket.php';
-
-$supportedVersionsDataFile = dirname(__DIR__) . '/../supportedVersions';
+$supportedVersionsDataFile = dirname(__DIR__) . '/supportedVersions';
 
 // refresh the supportedVersions if the file not exists or the data is older than 24 hours
 if (!file_exists($supportedVersionsDataFile) || (time() - filemtime($supportedVersionsDataFile) > 24 * 3600)) {
-    require_once dirname(__DIR__) . '/supportedVersions.php';
+    require_once dirname(__DIR__) . '/library/supportedVersions.php';
 
     $data = fopen($supportedVersionsDataFile, "w+");
     fwrite($data, serialize(getSupportedVersions()));
