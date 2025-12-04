@@ -26,6 +26,9 @@ This version includes substantial rewrites and enhancements to support modern Di
 
 ## Changelog
 
+### Version 1.0.3
+* Improved installer and update script to check for correct folder name in case the package was renamed.
+
 ### Version 1.0.2
 * Added Sorting and Search (column|row) options to the domains table
 * Fixed subdomain detection
