@@ -330,7 +330,7 @@ if ($systemInfo === null) {
         'systemInfo' => is_array($systemInfo) ? $systemInfo : [],
     ];
 
-    @file_put_contents($systemInfoCacheFile, serialize($payload));
+    file_put_contents($systemInfoCacheFile, serialize($payload));
 }
 
 // Colorize all PHP version entries dynamically (php, php2, php3, ..., php10)
